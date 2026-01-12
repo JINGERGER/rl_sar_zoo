@@ -171,11 +171,20 @@ def generate_launch_description():
         output='screen',
     )
     
-    # Robot joint controller (for RL control - handles all B2 leg joints + Z1 arm)
+    # Robot joint controller (for RL control - handles all B2 leg joints)
     robot_joint_controller = Node(
         package='controller_manager',
         executable='spawner',
         arguments=['robot_joint_controller', '--controller-manager-timeout', '60',
+                   '--param-file', controller_config],
+        output='screen',
+    )
+    
+    # Arm controller (for Z1 trajectory control)
+    arm_controller = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['arm_controller', '--controller-manager-timeout', '60',
                    '--param-file', controller_config],
         output='screen',
     )
@@ -191,4 +200,5 @@ def generate_launch_description():
         spawn_entity,
         joint_state_broadcaster,
         robot_joint_controller,
+        arm_controller,
     ])

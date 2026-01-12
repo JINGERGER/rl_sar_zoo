@@ -10,6 +10,9 @@ controller_manager:
 
         robot_joint_controller:
             type: robot_joint_controller/RobotJointControllerGroup
+        
+        arm_controller:
+            type: joint_trajectory_controller/JointTrajectoryController
 
 imu_sensor_broadcaster:
     ros__parameters:
@@ -19,7 +22,6 @@ imu_sensor_broadcaster:
 robot_joint_controller:
     ros__parameters:
         # B2 leg joints only (12 DOF for RL control)
-        # Z1 arm will remain at default position (not controlled)
         joints:
             - FR_hip_joint
             - FR_thigh_joint
@@ -33,3 +35,19 @@ robot_joint_controller:
             - RL_hip_joint
             - RL_thigh_joint
             - RL_calf_joint
+
+arm_controller:
+    ros__parameters:
+        # Z1 arm joints (6 DOF for trajectory control)
+        joints:
+            - z1_joint1
+            - z1_joint2
+            - z1_joint3
+            - z1_joint4
+            - z1_joint5
+            - z1_joint6
+        command_interfaces:
+            - position
+        state_interfaces:
+            - position
+            - velocity
