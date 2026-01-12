@@ -1,0 +1,416 @@
+<?xml version="1.0"?>
+<!--
+  Combined URDF for B2 quadruped robot with Z1 robotic arm mounted on back.
+  
+  This xacro file combines:
+  - B2 quadruped base (from b2_description)
+  - Z1 6-DOF robotic arm (from z1_description)
+  
+  The Z1 arm is mounted on the back of B2 using a fixed joint.
+-->
+
+<robot name="b2_z1" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!-- ========================================= -->
+    <!-- Parameters and Configuration -->
+    <!-- ========================================= -->
+    
+    <!-- Z1 mounting position relative to B2 base_link (in meters) -->
+    <!-- Default: slightly forward of center, above the body -->
+    <xacro:arg name="z1_mount_x" default="0.3" />    <!-- forward offset -->
+    <xacro:arg name="z1_mount_y" default="0.0" />     <!-- lateral offset (0=center) -->
+    <xacro:arg name="z1_mount_z" default="0.15" />    <!-- vertical offset above base -->
+    
+    <!-- Z1 mounting orientation (in radians) -->
+    <xacro:arg name="z1_mount_roll" default="0.0" />
+    <xacro:arg name="z1_mount_pitch" default="0.0" />
+    <xacro:arg name="z1_mount_yaw" default="0.0" />
+    
+    <!-- Z1 configuration -->
+    <xacro:arg name="z1_with_gripper" default="true" />
+    
+    <!-- Namespace prefix for Z1 links/joints (leave empty for no prefix) -->
+    <xacro:arg name="z1_prefix" default="z1_" />
+    
+    <!-- Controller configuration file -->
+    <xacro:arg name="controllers" default="$(find b2_z1_description)/config/b2_control.yaml" />
+
+    <!-- ========================================= -->
+    <!-- Include B2 Base Robot -->
+    <!-- ========================================= -->
+    
+    <xacro:include filename="$(find b2_description)/urdf/b2_description.urdf"/>
+    <!-- Note: B2 URDF provides base_link and all leg joints -->
+
+    <!-- ========================================= -->
+    <!-- Include Z1 Components -->
+    <!-- ========================================= -->
+    
+    <!-- Include Z1 constants (mass, inertia properties) -->
+    <xacro:include filename="$(find z1_description)/urdf/const.xacro" />
+    
+    <!-- Define Grey material for Z1 (matching z1.urdf.xacro) -->
+    <material name="Grey">
+        <color rgba="0.3 0.3 0.3 1.0" />
+    </material>
+
+    <!-- ========================================= -->
+    <!-- Z1 Arm Macro Definition -->
+    <!-- ========================================= -->
+    
+    <!-- 
+      Create a macro to instantiate Z1 arm without the 'world' link.
+      This allows us to attach it to any parent link (in this case, b2's base_link).
+      
+      The original z1.urdf.xacro has:
+        world -> base_static_joint -> link00 -> joint1 -> link01 -> ...
+      
+      We'll skip the 'world' link and connect link00 directly to b2's base_link.
+    -->
+    
+    <xacro:macro name="z1_arm" params="prefix:=^ parent:=^">
+        
+        <!-- ===== Link 00 (Base) ===== -->
+        <link name="${prefix}link00">
+            <visual>
+                <origin rpy="0 0 0" xyz="0 0 0" />
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/visual/z1_Link00.dae" scale="1 1 1" />
+                </geometry>
+                <material name="Grey" />
+            </visual>
+            <collision>
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/collision/z1_Link00.STL" scale="1 1 1" />
+                </geometry>
+                <origin rpy="0 0 0" xyz="0 0 ${motor_height/2.0}" />
+            </collision>
+            <inertial>
+                <origin rpy="0 0 0" xyz="${L00_ComX} ${L00_ComY} ${L00_ComZ}" />
+                <mass value="${L00_Mass}" />
+                <inertia
+                    ixx="${L00_Ixx}" ixy="${L00_Ixy}" ixz="${L00_Ixz}"
+                    iyy="${L00_Iyy}" iyz="${L00_Iyz}"
+                    izz="${L00_Izz}" />
+            </inertial>
+        </link>
+
+        <!-- ===== Joint 1 ===== -->
+        <joint name="${prefix}joint1" type="revolute">
+            <origin rpy="0 0 0" xyz="0 0 0.0585" />
+            <parent link="${prefix}link00" />
+            <child link="${prefix}link01" />
+            <axis xyz="0 0 1" />
+            <dynamics damping="${jointDamping}" friction="${jointFriction}" />
+            <limit effort="${torqueMax}" velocity="${velocityMax}" 
+                   lower="${joint1_PositionMin}" upper="${joint1_PositionMax}" />
+        </joint>
+
+        <!-- ===== Link 01 ===== -->
+        <link name="${prefix}link01">
+            <visual>
+                <origin rpy="0 0 0" xyz="0 0 0" />
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/visual/z1_Link01.dae" scale="1 1 1" />
+                </geometry>
+                <material name="Grey" />
+            </visual>
+            <collision>
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/collision/z1_Link01.STL" scale="1 1 1" />
+                </geometry>
+            </collision>
+            <inertial>
+                <origin rpy="0 0 0" xyz="${L01_ComX} ${L01_ComY} ${L01_ComZ}" />
+                <mass value="${L01_Mass}" />
+                <inertia
+                    ixx="${L01_Ixx}" ixy="${L01_Ixy}" ixz="${L01_Ixz}"
+                    iyy="${L01_Iyy}" iyz="${L01_Iyz}"
+                    izz="${L01_Izz}" />
+            </inertial>
+        </link>
+
+        <!-- ===== Joint 2 ===== -->
+        <joint name="${prefix}joint2" type="revolute">
+            <origin rpy="0 0 0" xyz="0 0 0.045" />
+            <parent link="${prefix}link01" />
+            <child link="${prefix}link02" />
+            <axis xyz="0 1 0" />
+            <dynamics damping="${2*jointDamping}" friction="${2*jointFriction}" />
+            <limit effort="${2*torqueMax}" velocity="${velocityMax}" 
+                   lower="${joint2_PositionMin}" upper="${joint2_PositionMax}" />
+        </joint>
+
+        <!-- ===== Link 02 ===== -->
+        <link name="${prefix}link02">
+            <visual>
+                <origin rpy="0 0 0" xyz="0 0 0" />
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/visual/z1_Link02.dae" scale="1 1 1" />
+                </geometry>
+                <material name="Grey" />
+            </visual>
+            <collision>
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/collision/z1_Link02.STL" scale="1 1 1" />
+                </geometry>
+            </collision>
+            <inertial>
+                <origin rpy="0 0 0" xyz="${L02_ComX} ${L02_ComY} ${L02_ComZ}" />
+                <mass value="${L02_Mass}" />
+                <inertia
+                    ixx="${L02_Ixx}" ixy="${L02_Ixy}" ixz="${L02_Ixz}"
+                    iyy="${L02_Iyy}" iyz="${L02_Iyz}"
+                    izz="${L02_Izz}" />
+            </inertial>
+        </link>
+
+        <!-- ===== Joint 3 ===== -->
+        <joint name="${prefix}joint3" type="revolute">
+            <origin rpy="0 0 0" xyz="-0.28 0 0" />
+            <parent link="${prefix}link02" />
+            <child link="${prefix}link03" />
+            <axis xyz="0 1 0" />
+            <dynamics damping="${2*jointDamping}" friction="${2*jointFriction}" />
+            <limit effort="${2*torqueMax}" velocity="${velocityMax}" 
+                   lower="${joint3_PositionMin}" upper="${joint3_PositionMax}" />
+        </joint>
+
+        <!-- ===== Link 03 ===== -->
+        <link name="${prefix}link03">
+            <visual>
+                <origin rpy="0 0 0" xyz="0 0 0" />
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/visual/z1_Link03.dae" scale="1 1 1" />
+                </geometry>
+                <material name="Grey" />
+            </visual>
+            <collision>
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/collision/z1_Link03.STL" scale="1 1 1" />
+                </geometry>
+            </collision>
+            <inertial>
+                <origin rpy="0 0 0" xyz="${L03_ComX} ${L03_ComY} ${L03_ComZ}" />
+                <mass value="${L03_Mass}" />
+                <inertia
+                    ixx="${L03_Ixx}" ixy="${L03_Ixy}" ixz="${L03_Ixz}"
+                    iyy="${L03_Iyy}" iyz="${L03_Iyz}"
+                    izz="${L03_Izz}" />
+            </inertial>
+        </link>
+
+        <!-- ===== Joint 4 ===== -->
+        <joint name="${prefix}joint4" type="revolute">
+            <origin rpy="0 0 0" xyz="0.224 0 0.065" />
+            <parent link="${prefix}link03" />
+            <child link="${prefix}link04" />
+            <axis xyz="0 0 1" />
+            <dynamics damping="${jointDamping}" friction="${jointFriction}" />
+            <limit effort="${torqueMax}" velocity="${velocityMax}" 
+                   lower="${joint4_PositionMin}" upper="${joint4_PositionMax}" />
+        </joint>
+
+        <!-- ===== Link 04 ===== -->
+        <link name="${prefix}link04">
+            <visual>
+                <origin rpy="0 0 0" xyz="0 0 0" />
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/visual/z1_Link04.dae" scale="1 1 1" />
+                </geometry>
+                <material name="Grey" />
+            </visual>
+            <collision>
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/collision/z1_Link04.STL" scale="1 1 1" />
+                </geometry>
+            </collision>
+            <inertial>
+                <origin rpy="0 0 0" xyz="${L04_ComX} ${L04_ComY} ${L04_ComZ}" />
+                <mass value="${L04_Mass}" />
+                <inertia
+                    ixx="${L04_Ixx}" ixy="${L04_Ixy}" ixz="${L04_Ixz}"
+                    iyy="${L04_Iyy}" iyz="${L04_Iyz}"
+                    izz="${L04_Izz}" />
+            </inertial>
+        </link>
+
+        <!-- ===== Joint 5 ===== -->
+        <joint name="${prefix}joint5" type="revolute">
+            <origin rpy="0 0 0" xyz="0.07 0.0 0.0" />
+            <parent link="${prefix}link04" />
+            <child link="${prefix}link05" />
+            <axis xyz="0 0 1" />
+            <dynamics damping="${jointDamping}" friction="${jointFriction}" />
+            <limit effort="${torqueMax}" velocity="${velocityMax}" 
+                   lower="${joint5_PositionMin}" upper="${joint5_PositionMax}" />
+        </joint>
+
+        <!-- ===== Link 05 ===== -->
+        <link name="${prefix}link05">
+            <visual>
+                <origin rpy="0 0 0" xyz="0 0 0" />
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/visual/z1_Link05.dae" scale="1 1 1" />
+                </geometry>
+                <material name="Grey" />
+            </visual>
+            <collision>
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/collision/z1_Link05.STL" scale="1 1 1" />
+                </geometry>
+            </collision>
+            <inertial>
+                <origin rpy="0 0 0" xyz="${L05_ComX} ${L05_ComY} ${L05_ComZ}" />
+                <mass value="${L05_Mass}" />
+                <inertia
+                    ixx="${L05_Ixx}" ixy="${L05_Ixy}" ixz="${L05_Ixz}"
+                    iyy="${L05_Iyy}" iyz="${L05_Iyz}"
+                    izz="${L05_Izz}" />
+            </inertial>
+        </link>
+
+        <!-- ===== Joint 6 ===== -->
+        <joint name="${prefix}joint6" type="revolute">
+            <origin rpy="0 0 0" xyz="0.0492 0.0 0.0" />
+            <parent link="${prefix}link05" />
+            <child link="${prefix}link06" />
+            <axis xyz="1 0 0" />
+            <dynamics damping="${jointDamping}" friction="${jointFriction}" />
+            <limit effort="${torqueMax}" velocity="${velocityMax}" 
+                   lower="${joint6_PositionMin}" upper="${joint6_PositionMax}" />
+        </joint>
+
+        <!-- ===== Link 06 (End Effector Mount) ===== -->
+        <link name="${prefix}link06">
+            <visual>
+                <origin rpy="0 0 0" xyz="0 0 0" />
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/visual/z1_Link06.dae" scale="1 1 1" />
+                </geometry>
+                <material name="Grey" />
+            </visual>
+            <collision>
+                <geometry>
+                    <mesh filename="package://z1_description/meshes/collision/z1_Link06.STL" scale="1 1 1" />
+                </geometry>
+            </collision>
+            <inertial>
+                <origin rpy="0 0 0" xyz="${L06_ComX} ${L06_ComY} ${L06_ComZ}" />
+                <mass value="${L06_Mass}" />
+                <inertia
+                    ixx="${L06_Ixx}" ixy="${L06_Ixy}" ixz="${L06_Ixz}"
+                    iyy="${L06_Iyy}" iyz="${L06_Iyz}"
+                    izz="${L06_Izz}" />
+            </inertial>
+        </link>
+
+        <!-- ===== TCP (Tool Center Point) ===== -->
+        <joint name="${prefix}joint_tcp" type="fixed">
+            <origin rpy="0 0 0" xyz="0 0 0.05" />
+            <parent link="${prefix}link06" />
+            <child link="${prefix}tcp" />
+        </joint>
+
+        <link name="${prefix}tcp">
+            <inertial>
+                <origin rpy="0 0 0" xyz="0 0 0" />
+                <mass value="0.001" />
+                <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+            </inertial>
+        </link>
+
+    </xacro:macro>
+
+    <!-- ========================================= -->
+    <!-- Mount Z1 Arm on B2 Base -->
+    <!-- ========================================= -->
+    
+    <!-- Mounting box link (rigid connection between B2 and Z1) -->
+    <link name="z1_mount_box">
+        <visual>
+            <origin xyz="0 0 0.05" rpy="0 0 0" />
+            <geometry>
+                <box size="0.12 0.15 0.24" />
+            </geometry>
+            <material name="Grey" />
+        </visual>
+        <collision>
+            <origin xyz="0 0 0.05" rpy="0 0 0" />
+            <geometry>
+                <box size="0.12 0.15 0.24" />
+            </geometry>
+        </collision>
+        <inertial>
+            <origin xyz="0 0 0.05" rpy="0 0 0" />
+            <mass value="0.5" />
+            <inertia ixx="0.002" ixy="0" ixz="0" 
+                     iyy="0.003" iyz="0" 
+                     izz="0.004" />
+        </inertial>
+    </link>
+    
+    <!-- Fixed joint from B2 base_link to mounting box -->
+    <joint name="b2_to_mount_box" type="fixed">
+        <parent link="base_link" />
+        <child link="z1_mount_box" />
+        <origin xyz="$(arg z1_mount_x) $(arg z1_mount_y) $(arg z1_mount_z)" 
+                rpy="$(arg z1_mount_roll) $(arg z1_mount_pitch) $(arg z1_mount_yaw)" />
+    </joint>
+    
+    <!-- Fixed joint from mounting box to Z1's base (link00) -->
+    <joint name="mount_box_to_z1" type="fixed">
+        <parent link="z1_mount_box" />
+        <child link="$(arg z1_prefix)link00" />
+        <origin xyz="0 0 0.1" rpy="0 0 0" />  <!-- Box height = 0.1m -->
+    </joint>
+
+    <!-- Instantiate Z1 arm with prefix -->
+    <xacro:z1_arm prefix="$(arg z1_prefix)" parent="base_link" />
+
+    <!-- ========================================= -->
+    <!-- Gazebo-specific configurations -->
+    <!-- ========================================= -->
+    
+    <!-- Include B2+Z1 combined Gazebo configuration with ros2_control -->
+    <xacro:include filename="$(find b2_z1_description)/xacro/gazebo.xacro"/>
+    
+    <!-- Add Gazebo properties for mounting box -->
+    <gazebo reference="z1_mount_box">
+        <material>Gazebo/Grey</material>
+        <mu1>0.5</mu1>
+        <mu2>0.5</mu2>
+    </gazebo>
+    
+    <!-- Add Gazebo properties for Z1 links (friction, damping, etc.) -->
+    <gazebo reference="$(arg z1_prefix)link00">
+        <material>Gazebo/Grey</material>
+        <mu1>0.2</mu1>
+        <mu2>0.2</mu2>
+    </gazebo>
+    
+    <gazebo reference="$(arg z1_prefix)link01">
+        <material>Gazebo/Grey</material>
+    </gazebo>
+    
+    <gazebo reference="$(arg z1_prefix)link02">
+        <material>Gazebo/Grey</material>
+    </gazebo>
+    
+    <gazebo reference="$(arg z1_prefix)link03">
+        <material>Gazebo/Grey</material>
+    </gazebo>
+    
+    <gazebo reference="$(arg z1_prefix)link04">
+        <material>Gazebo/Grey</material>
+    </gazebo>
+    
+    <gazebo reference="$(arg z1_prefix)link05">
+        <material>Gazebo/Grey</material>
+    </gazebo>
+    
+    <gazebo reference="$(arg z1_prefix)link06">
+        <material>Gazebo/Grey</material>
+    </gazebo>
+
+</robot>

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!--
+  Main entry point for b2_z1 robot description in Gazebo.
+  This file is called by rl_sar's gazebo.launch.py.
+-->
+<robot name="b2_z1_description" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!-- Include the main b2_z1 combined URDF (structure only, no Gazebo plugins) -->
+    <xacro:include filename="$(find b2_z1_description)/urdf/b2_z1.urdf.xacro"/>
+    
+    <!-- Use b2_z1's Gazebo configuration (includes both B2 and Z1 control interfaces) -->
+    <xacro:include filename="$(find b2_z1_description)/xacro/gazebo.xacro"/>
+
+</robot>
