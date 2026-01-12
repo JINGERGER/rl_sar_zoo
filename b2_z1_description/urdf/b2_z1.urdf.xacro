@@ -17,7 +17,7 @@
     
     <!-- Z1 mounting position relative to B2 base_link (in meters) -->
     <!-- Default: slightly forward of center, above the body -->
-    <xacro:arg name="z1_mount_x" default="0.3" />    <!-- forward offset -->
+    <xacro:arg name="z1_mount_x" default="0.4" />    <!-- forward offset -->
     <xacro:arg name="z1_mount_y" default="0.0" />     <!-- lateral offset (0=center) -->
     <xacro:arg name="z1_mount_z" default="0.15" />    <!-- vertical offset above base -->
     
@@ -329,21 +329,21 @@
     <!-- Mounting box link (rigid connection between B2 and Z1) -->
     <link name="z1_mount_box">
         <visual>
-            <origin xyz="0 0 0.05" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
             <geometry>
-                <box size="0.12 0.15 0.24" />
+                <box size="0.12 0.15 0.12" />
             </geometry>
             <material name="Grey" />
         </visual>
         <collision>
-            <origin xyz="0 0 0.05" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
             <geometry>
-                <box size="0.12 0.15 0.24" />
+                <box size="0.12 0.15 0.12" />
             </geometry>
         </collision>
         <inertial>
-            <origin xyz="0 0 0.05" rpy="0 0 0" />
-            <mass value="0.5" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <mass value="0.25" />
             <inertia ixx="0.002" ixy="0" ixz="0" 
                      iyy="0.003" iyz="0" 
                      izz="0.004" />
@@ -362,7 +362,7 @@
     <joint name="mount_box_to_z1" type="fixed">
         <parent link="z1_mount_box" />
         <child link="$(arg z1_prefix)link00" />
-        <origin xyz="0 0 0.1" rpy="0 0 0" />  <!-- Box height = 0.1m -->
+        <origin xyz="0 0 0.06" rpy="0 0 0" />  <!-- Half of 0.12m box above center -->
     </joint>
 
     <!-- Instantiate Z1 arm with prefix -->

@@ -70,7 +70,7 @@ def generate_launch_description():
     
     declare_z1_mount_x = DeclareLaunchArgument(
         'z1_mount_x',
-        default_value='0.05',
+        default_value='0.2',
         description='X position of Z1 mount on B2'
     )
     
