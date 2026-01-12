@@ -99,11 +99,11 @@ def generate_launch_description():
         'b2_z1.urdf.xacro'
     ])
     
-    # Controller configuration file - use absolute path
+    # Controller configuration file - use robot_control_ros2.yaml for RL control
     controller_config = os.path.join(
         get_package_share_directory('b2_z1_description'),
         'config',
-        'b2_control.yaml'
+        'robot_control_ros2.yaml'
     )
     
     # Process xacro to generate URDF
@@ -171,20 +171,11 @@ def generate_launch_description():
         output='screen',
     )
     
-    # B2 leg controller (effort control with PID)
-    leg_controller = Node(
+    # Robot joint controller (for RL control - handles all B2 leg joints + Z1 arm)
+    robot_joint_controller = Node(
         package='controller_manager',
         executable='spawner',
-        arguments=['leg_controller', '--controller-manager-timeout', '60',
-                   '--param-file', controller_config],
-        output='screen',
-    )
-    
-    # Z1 arm controller (position control)
-    arm_controller = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=['arm_controller', '--controller-manager-timeout', '60',
+        arguments=['robot_joint_controller', '--controller-manager-timeout', '60',
                    '--param-file', controller_config],
         output='screen',
     )
@@ -199,6 +190,5 @@ def generate_launch_description():
         gazebo_launch,
         spawn_entity,
         joint_state_broadcaster,
-        leg_controller,
-        arm_controller,
+        robot_joint_controller,
     ])
